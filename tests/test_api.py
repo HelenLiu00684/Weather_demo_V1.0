@@ -10,7 +10,7 @@ client=TestClient(
 )
 
 
-def test_health():
+def test_health(db_session):
 
     response=client.get(
 
@@ -28,7 +28,7 @@ def test_health():
 
 
 
-def test_readings():
+def test_health(db_session):
 
     response=client.get(
 
@@ -68,7 +68,7 @@ def test_readings():
 
 
 
-def test_events():
+def test_health(db_session):
 
     response=client.get(
 
