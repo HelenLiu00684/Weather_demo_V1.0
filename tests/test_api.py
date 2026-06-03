@@ -1,53 +1,78 @@
+import pytest
+
 from fastapi.testclient import TestClient
 
 from app.api import app
 
-
-client = TestClient(
-
-    app
-
-)
+from app.api import get_db
 
 
-def test_health(
+
+@pytest.fixture()
+
+def api_client(
 
         db_session
 
 ):
 
-    response = client.get(
+    app.dependency_overrides[
+
+        get_db
+
+    ]=lambda: db_session
+
+
+    yield TestClient(
+
+        app
+
+    )
+
+
+    app.dependency_overrides={}
+
+
+
+def test_health(
+
+        api_client
+
+):
+
+    response=api_client.get(
 
         "/health"
 
     )
 
-    assert response.status_code == 200
+    assert response.status_code==200
 
-    data = response.json()
+
+    data=response.json()
 
     assert "status" in data
 
-    assert data["status"] == "ok"
+    assert data["status"]=="ok"
 
 
 
 def test_readings(
 
-        db_session
+        api_client
 
 ):
 
-    response = client.get(
+    response=api_client.get(
 
         "/readings"
 
     )
 
-    assert response.status_code == 200
+    assert response.status_code==200
 
 
-    data = response.json()
+    data=response.json()
 
 
     assert isinstance(
@@ -61,7 +86,8 @@ def test_readings(
 
     if data:
 
-        reading = data[0]
+        reading=data[0]
+
 
         assert "city" in reading
 
@@ -77,20 +103,20 @@ def test_readings(
 
 def test_events(
 
-        db_session
+        api_client
 
 ):
 
-    response = client.get(
+    response=api_client.get(
 
         "/events"
 
     )
 
-    assert response.status_code == 200
+    assert response.status_code==200
 
 
-    data = response.json()
+    data=response.json()
 
 
     assert isinstance(
@@ -104,7 +130,8 @@ def test_events(
 
     if data:
 
-        event = data[0]
+        event=data[0]
+
 
         assert "city" in event
 

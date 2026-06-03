@@ -14,6 +14,7 @@ Responsibilities:
 """
 
 from fastapi import FastAPI
+from fastapi import Depends
 
 from sqlalchemy.orm import sessionmaker
 
@@ -22,7 +23,6 @@ from app.database.database import engine
 from app.database.reading import WeatherReading
 
 from app.database.event import WeatherEvent
-
 
 
 app=FastAPI(
@@ -34,12 +34,24 @@ app=FastAPI(
 )
 
 
-
 SessionLocal=sessionmaker(
 
     bind=engine
 
 )
+
+
+def get_db():
+
+    db=SessionLocal()
+
+    try:
+
+        yield db
+
+    finally:
+
+        db.close()
 
 
 
@@ -52,10 +64,6 @@ SessionLocal=sessionmaker(
 )
 
 def health():
-
-    """
-    Verify API availability.
-    """
 
     return {
 
@@ -79,81 +87,68 @@ def get_readings(
 
         limit:int=20,
 
-        city:str|None=None
+        city:str|None=None,
+
+        db=Depends(
+
+            get_db
+
+        )
 
 ):
 
-    """
-    Retrieve stored weather readings.
+    query=db.query(
 
-    Supports:
+        WeatherReading
 
-    - city filtering
+    )
 
-    - result limiting
-    """
 
-    db=SessionLocal()
+    if city:
 
-    try:
+        query=query.filter(
 
-        query=db.query(
-
-            WeatherReading
+            WeatherReading.city==city
 
         )
 
 
-        if city:
+    readings=query.order_by(
 
-            query=query.filter(
+        WeatherReading.id.desc()
 
-                WeatherReading.city==city
+    ).limit(
 
-            )
+        limit
 
-
-        readings=query.order_by(
-
-            WeatherReading.id.desc()
-
-        ).limit(
-
-            limit
-
-        ).all()
+    ).all()
 
 
-        result=[]
+    result=[]
 
 
-        for r in readings:
+    for r in readings:
 
-            result.append(
+        result.append(
 
-                {
+            {
 
-                    "city":r.city,
+                "city":r.city,
 
-                    "timestamp":r.timestamp,
+                "timestamp":r.timestamp,
 
-                    "temperature":r.temperature,
+                "temperature":r.temperature,
 
-                    "wind_speed":r.wind_speed,
+                "wind_speed":r.wind_speed,
 
-                    "weather_code":r.weather_code
+                "weather_code":r.weather_code
 
-                }
+            }
 
-            )
-
-
-        return result
+        )
 
 
-    finally:
-
-        db.close()
+    return result
 
 
 
@@ -171,78 +166,65 @@ def get_events(
 
         limit:int=20,
 
-        city:str|None=None
+        city:str|None=None,
+
+        db=Depends(
+
+            get_db
+
+        )
 
 ):
 
-    """
-    Retrieve generated weather events.
+    query=db.query(
 
-    Supports:
+        WeatherEvent
 
-    - city filtering
+    )
 
-    - result limiting
-    """
 
-    db=SessionLocal()
+    if city:
 
-    try:
+        query=query.filter(
 
-        query=db.query(
-
-            WeatherEvent
+            WeatherEvent.city==city
 
         )
 
 
-        if city:
+    events=query.order_by(
 
-            query=query.filter(
+        WeatherEvent.id.desc()
 
-                WeatherEvent.city==city
+    ).limit(
 
-            )
+        limit
 
-
-        events=query.order_by(
-
-            WeatherEvent.id.desc()
-
-        ).limit(
-
-            limit
-
-        ).all()
+    ).all()
 
 
-        result=[]
+    result=[]
 
 
-        for e in events:
+    for e in events:
 
-            result.append(
+        result.append(
 
-                {
+            {
 
-                    "city":e.city,
+                "city":e.city,
 
-                    "event_type":e.event_type,
+                "event_type":e.event_type,
 
-                    "severity":e.severity,
+                "severity":e.severity,
 
-                    "message":e.message,
+                "message":e.message,
 
-                    "timestamp":e.timestamp
+                "timestamp":e.timestamp
 
-                }
+            }
 
-            )
-
-
-        return result
+        )
 
 
-    finally:
-
-        db.close()
+    return result

@@ -15,24 +15,37 @@ sys.path.append(
     str(ROOT)
 
 )
+
 import pytest
 
 from sqlalchemy import create_engine
 
 from sqlalchemy.orm import sessionmaker
 
+from sqlalchemy.pool import StaticPool
+
 from app.database.database import Base
 
 
 
-TEST_DB="sqlite:///:memory:"
+TEST_DB="sqlite://"
+
 
 
 engine=create_engine(
 
-    TEST_DB
+    TEST_DB,
+
+    connect_args={
+
+        "check_same_thread":False
+
+    },
+
+    poolclass=StaticPool
 
 )
+
 
 
 TestingSession=sessionmaker(
@@ -52,6 +65,7 @@ def db_session():
         engine
 
     )
+
 
     session=TestingSession()
 
