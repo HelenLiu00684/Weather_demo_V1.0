@@ -1,0 +1,7 @@
+**pycache**/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+weather.db
+.DS_Store
