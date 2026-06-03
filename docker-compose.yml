@@ -32,6 +32,10 @@ services:
 
 volumes:
 
+  grafana_data:
+
+    name: weather_demo_grafana_data
+
   influx_data:
 
-  grafana_data:
+    name: weather_demo_influx_data
