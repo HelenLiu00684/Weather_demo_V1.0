@@ -1,3 +1,30 @@
+####################################################
+#
+# Weather Transition Unit Test
+#
+# Responsibility
+#
+# Verify that the Event Engine detects
+# weather condition transitions between
+# consecutive observations.
+#
+# Validation
+#
+# • Transition event is generated
+#
+# • Event type is correct
+#
+# Processing Pipeline
+#
+# Create Historical Readings
+#          ↓
+# Execute Transition Detector
+#          ↓
+# Query WeatherEvent Table
+#          ↓
+# Validate Transition Event
+#
+####################################################
 from app.event_engine import detect_weather_transition
 
 from app.database.event import WeatherEvent

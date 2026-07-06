@@ -1,17 +1,48 @@
-"""
-Weather Monitoring API
-
-Responsibilities:
-
-1. Provide health endpoint
-
-2. Expose weather readings
-
-3. Expose generated events
-
-4. Provide query interface for
-   monitoring dashboards and users
-"""
+####################################################
+#
+# Weather Monitoring REST API
+#
+# Responsibility
+#
+# Expose weather monitoring data through
+# RESTful HTTP endpoints.
+#
+# Available Endpoints
+#
+# • /health
+#      Service health verification
+#
+# • /readings
+#      Retrieve weather observations
+#
+# • /events
+#      Retrieve generated weather events
+#
+# Dependencies
+#
+# • FastAPI
+#      HTTP request routing
+#
+# • SQLAlchemy
+#      Database session management
+#
+# • SQLite Repository
+#      WeatherReading
+#      WeatherEvent
+#
+# Processing Pipeline
+#
+# HTTP Request
+#        ↓
+# FastAPI Router
+#        ↓
+# Database Query
+#        ↓
+# ORM Objects
+#        ↓
+# JSON Response
+#
+####################################################
 
 from fastapi import FastAPI
 from fastapi import Depends
@@ -32,7 +63,36 @@ app=FastAPI(
     redoc_url=None
 
 )
+####################################################
+#
+# SQLAlchemy Session Factory
+#
+# Responsibility
+#
+# Create a session factory for generating
+# database sessions.
+#
+# All sessions created by SessionLocal are
+# bound to the configured database engine.
+#
+# Relationship
+#
+# Engine
+#      ↓
+# Session Factory (SessionLocal)
+#      ↓
+# Database Session (db)
+#
+####################################################
+SessionLocal = sessionmaker(
 
+    #
+    # Bind all generated sessions to the
+    # configured SQLAlchemy engine.
+    #
+    bind=engine
+
+)
 
 SessionLocal=sessionmaker(
 
@@ -40,7 +100,31 @@ SessionLocal=sessionmaker(
 
 )
 
-
+####################################################
+#
+# Database Session Dependency
+#
+# Responsibility
+#
+# Provide a SQLAlchemy database session
+# for each incoming API request.
+#
+# FastAPI automatically injects this
+# dependency into endpoints that declare:
+#
+#     db = Depends(get_db)
+#
+# Request Lifecycle
+#
+# HTTP Request
+#        ↓
+# Create Database Session
+#        ↓
+# Execute Database Operations
+#        ↓
+# Close Database Session
+#
+####################################################
 def get_db():
 
     db=SessionLocal()
@@ -53,8 +137,29 @@ def get_db():
 
         db.close()
 
-
-
+####################################################
+#
+# Health Check Endpoint
+#
+# Responsibility
+#
+# Verify that the FastAPI service is running
+# and able to accept HTTP requests.
+#
+# This endpoint does not access the database
+# and performs no business logic.
+#
+# HTTP Request
+#
+# GET /health
+#
+# Example Response
+#
+# {
+#     "status": "ok"
+# }
+#
+####################################################
 @app.get(
 
     "/health",
@@ -71,6 +176,43 @@ def health():
 
     }
 
+####################################################
+#
+# Retrieve Weather Readings
+#
+# Responsibility
+#
+# Query weather observations from the
+# WeatherReading repository and expose
+# them through the REST API.
+#
+# Query Parameters
+#
+# limit
+#     Maximum number of returned records.
+#
+# city
+#     Optional city filter.
+#
+# Dependencies
+#
+# • Database Session (get_db)
+#
+# • WeatherReading Repository
+#
+# Processing Pipeline
+#
+# HTTP Request
+#        ↓
+# Receive Query Parameters
+#        ↓
+# Query SQLite Database
+#        ↓
+# ORM Objects
+#        ↓
+# JSON Response
+#
+####################################################
 
 
 @app.get(
@@ -96,12 +238,37 @@ def get_readings(
         )
 
 ):
+    # --------------------------------------------------------
+    # Step 1. Build Database Query
+    #
+    # Create a SQLAlchemy query for the
+    # WeatherReading table.
+    #
+    # SQL Equivalent:
+    #
+    # SELECT *
+    # FROM weather_readings
+    # --------------------------------------------------------
 
     query=db.query(
 
         WeatherReading
 
     )
+    # --------------------------------------------------------
+    # Step 2. Apply Optional City Filter
+    #
+    # If a city is specified, restrict the query
+    # to weather observations for that city.
+    #
+    # Example:
+    #
+    # GET /readings?city=Ottawa
+    #
+    # SQL Equivalent:
+    #
+    # WHERE city = 'Ottawa'
+    # --------------------------------------------------------
 
 
     if city:
@@ -112,7 +279,16 @@ def get_readings(
 
         )
 
-
+    # --------------------------------------------------------
+    # Step 3. Execute Database Query
+    #
+    # Retrieve the newest weather observations.
+    #
+    # SQL Equivalent:
+    #
+    # ORDER BY id DESC
+    # LIMIT <limit>
+    # --------------------------------------------------------
     readings=query.order_by(
 
         WeatherReading.id.desc()
@@ -123,7 +299,13 @@ def get_readings(
 
     ).all()
 
-
+    # --------------------------------------------------------
+    # Step 4. Convert ORM Objects to JSON
+    #
+    # FastAPI cannot directly serialize SQLAlchemy
+    # ORM objects. Convert each WeatherReading
+    # object into a JSON-serializable dictionary.
+    # --------------------------------------------------------
     result=[]
 
 
@@ -147,10 +329,61 @@ def get_readings(
 
         )
 
-
+    # --------------------------------------------------------
+    # Step 5. Return JSON Response
+    #
+    # Response Type:
+    #
+    # List[Dictionary]
+    #
+    # Example:
+    #
+    # [
+    #     {
+    #         "city":"Ottawa",
+    #         "temperature":25.8
+    #     }
+    # ]
+    # --------------------------------------------------------
     return result
 
-
+####################################################
+#
+# Retrieve Weather Events
+#
+# Responsibility
+#
+# Query generated weather events from the
+# WeatherEvent repository and expose them
+# through the REST API.
+#
+# Query Parameters
+#
+# limit
+#     Maximum number of returned events.
+#
+# city
+#     Optional city filter.
+#
+# Dependencies
+#
+# • Database Session (get_db)
+#
+# • WeatherEvent Repository
+#
+# Processing Pipeline
+#
+# HTTP Request
+#        ↓
+# Receive Query Parameters
+#        ↓
+# Query SQLite Database
+#        ↓
+# ORM Objects
+#        ↓
+# JSON Response
+#
+####################################################
 
 @app.get(
 
@@ -175,14 +408,37 @@ def get_events(
         )
 
 ):
-
+    # --------------------------------------------------------
+    # Step 1. Build Database Query
+    #
+    # Create a SQLAlchemy query for the
+    # WeatherEvent table.
+    #
+    # SQL Equivalent:
+    #
+    # SELECT *
+    # FROM weather_events
+    # --------------------------------------------------------
     query=db.query(
 
         WeatherEvent
 
     )
 
-
+    # --------------------------------------------------------
+    # Step 2. Apply Optional City Filter
+    #
+    # If a city is specified, restrict the query
+    # to weather events for that city.
+    #
+    # Example:
+    #
+    # GET /events?city=Ottawa
+    #
+    # SQL Equivalent:
+    #
+    # WHERE city = 'Ottawa'
+    # --------------------------------------------------------
     if city:
 
         query=query.filter(
@@ -190,7 +446,16 @@ def get_events(
             WeatherEvent.city==city
 
         )
-
+    # --------------------------------------------------------
+    # Step 3. Execute Database Query
+    #
+    # Retrieve the newest generated events.
+    #
+    # SQL Equivalent:
+    #
+    # ORDER BY id DESC
+    # LIMIT <limit>
+    # --------------------------------------------------------
 
     events=query.order_by(
 
@@ -202,7 +467,12 @@ def get_events(
 
     ).all()
 
-
+    # --------------------------------------------------------
+    # Step 4. Convert ORM Objects to JSON
+    #
+    # Convert each WeatherEvent ORM object
+    # into a JSON-serializable dictionary.
+    # --------------------------------------------------------
     result=[]
 
 
@@ -226,5 +496,23 @@ def get_events(
 
         )
 
-
+# --------------------------------------------------------
+    # Step 5. Return JSON Response
+    #
+    # Response Type:
+    #
+    # List[Dictionary]
+    #
+    # Example:
+    #
+    # [
+    #     {
+    #         "city":"Ottawa",
+    #         "event_type":"STRONG_WIND",
+    #         "severity":"WARNING",
+    #         "message":"wind speed 15.2 km/h",
+    #         "timestamp":"2026-07-06T10:00"
+    #     }
+    # ]
+    # --------------------------------------------------------
     return result

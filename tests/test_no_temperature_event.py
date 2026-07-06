@@ -1,3 +1,30 @@
+####################################################
+#
+# Temperature Change Negative Test
+#
+# Responsibility
+#
+# Verify that no temperature event is
+# generated when the temperature change
+# is below the configured threshold.
+#
+# Validation
+#
+# • No event is created
+#
+# • Event table remains empty
+#
+# Processing Pipeline
+#
+# Create Historical Reading
+#          ↓
+# Execute Temperature Detector
+#          ↓
+# Query WeatherEvent Table
+#          ↓
+# Verify No Event
+#
+####################################################
 from app.event_engine import detect_temperature_change
 
 from app.database.event import WeatherEvent

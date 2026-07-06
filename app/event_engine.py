@@ -20,23 +20,37 @@ from app.database.event import create_event
 
 
 ####################################################
+####################################################
 #
-# Rapid Temperature Change Event
+# Rapid Temperature Change Event Detector
 #
-# Definition:
+# Dependencies
 #
-# abs(
+# This detector coordinates two repository modules:
 #
-# current temperature
+# 1. Weather Reading Repository (reading.py)
 #
-# -
+#    Retrieves the historical baseline weather
+#    observation used for comparison.
 #
-# baseline temperature (>12h)
+# 2. Weather Event Repository (event.py)
 #
-# )
+#    Persists the generated weather event after
+#    business rule evaluation.
 #
-# >= threshold
+# Processing Pipeline
 #
+# WeatherReading
+#        ↓
+# Historical Baseline
+#        ↓
+# Temperature Comparison
+#        ↓
+# Event Generation
+#        ↓
+# WeatherEvent
+#
+####################################################
 ####################################################
 
 def detect_temperature_change(
@@ -132,11 +146,42 @@ def detect_temperature_change(
 
 ####################################################
 #
-# Strong Wind Event
+# Strong Wind Event Detector
 #
-# Definition:
+# Responsibility
 #
-# Wind speed exceeds threshold
+# Detect operationally significant wind
+# conditions based on predefined thresholds.
+#
+# Dependencies
+#
+# 1. Weather Reading
+#
+#    Input:
+#
+#    Current Weather Observation
+#
+#    Example:
+#
+#    {
+#        "wind_speed_10m": 18.2,
+#        "time": "2026-06-08T18:00"
+#    }
+#
+# 2. Weather Event Repository (event.py)
+#
+#    Persist the generated STRONG_WIND
+#    event into the weather_events table.
+#
+# Processing Pipeline
+#
+# Current Weather State
+#          ↓
+# Wind Speed Evaluation
+#          ↓
+# Severity Classification
+#          ↓
+# Weather Event
 #
 ####################################################
 
@@ -206,17 +251,45 @@ def detect_strong_wind(
 
 ####################################################
 #
-# Cross City Temperature Event
+# Cross-City Temperature Event Detector
 #
-# Definition:
+# Responsibility
 #
-# max temperature
+# Compare temperatures across all monitored
+# cities and detect abnormal temperature spread.
 #
-# -
+# Dependencies
 #
-# min temperature
+# 1. Polling Layer
 #
-# >= threshold
+#    Input:
+#
+#    Dictionary[str, float]
+#
+#    Example:
+#
+#    {
+#        "Ottawa": 25.8,
+#        "Toronto": 31.2,
+#        "Montreal": 24.3
+#    }
+#
+# 2. Weather Event Repository (event.py)
+#
+#    Persist the generated CROSS_CITY_TEMP
+#    event into the weather_events table.
+#
+# Processing Pipeline
+#
+# Temperature Snapshot
+#          ↓
+# Max / Min Comparison
+#          ↓
+# Temperature Spread
+#          ↓
+# Severity Classification
+#          ↓
+# Weather Event
 #
 ####################################################
 
@@ -331,10 +404,33 @@ def detect_cross_city_temperature(
 
 ####################################################
 #
-# Weather Transition Event
+# Weather Transition Event Detector
 #
-# Detect transitions between
-# weather classifications
+# Responsibility
+#
+# Detect changes in weather classification
+# between consecutive weather observations.
+#
+# Dependencies
+#
+# 1. Weather Reading Repository (reading.py)
+#
+#    Retrieve the previous weather state.
+#
+# 2. Weather Event Repository (event.py)
+#
+#    Persist the generated WEATHER_TRANSITION
+#    event into the weather_events table.
+#
+# Processing Pipeline
+#
+# Previous Weather State
+#          ↓
+# Current Weather State
+#          ↓
+# State Comparison
+#          ↓
+# Weather Transition Event
 #
 ####################################################
 

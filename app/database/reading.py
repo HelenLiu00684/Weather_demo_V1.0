@@ -13,18 +13,52 @@ from app.database.database import Base
 
 ####################################################
 #
-# Weather Reading Table
+# Weather Reading ORM Model
 #
-# Purpose:
+# Responsibility
 #
-# Store authoritative weather state
+# Defines the schema of the weather_readings table.
 #
-# This layer owns business state
+# Each WeatherReading object represents one row
+# in the SQLite database.
+#
+# ORM (Object Relational Mapping) allows Python
+# objects to be mapped directly to database records.
+#
 #
 ####################################################
 
 class WeatherReading(Base):
-
+####################################################
+#
+# Weather Reading Table Schema
+#
+# Responsibility
+#
+# Define the schema of the weather_readings table.
+#
+# Each WeatherReading object represents one row
+# in the SQLite database.
+#
+# The table stores the authoritative weather
+# observations collected by the polling service.
+#
+#
+# Database Row Example
+#
+# id:                     101
+# city:                   "Ottawa"
+# timestamp:              "2026-06-08T18:00"
+# temperature:            25.8
+# apparent_temperature:   27.4
+# precipitation:          0.0
+# wind_speed:             18.2
+# weather_code:           3
+#
+# One WeatherReading object represents
+# one row in the weather_readings table.
+# Define an ORM model.
+####################################################
     __tablename__ = "weather_readings"
 
     id = Column(
@@ -70,7 +104,19 @@ class WeatherReading(Base):
 #
 # Persist weather state into
 # authoritative storage
-#
+# Step 1
+# Create ORM Object
+#         │
+#         ▼
+# Step 2
+# Add Object to Session
+#         │
+#         ▼
+# Step 3
+# Commit Transaction
+#         │
+#         ▼
+# SQLite Database
 ####################################################
 
 def create_reading(
@@ -91,7 +137,11 @@ def create_reading(
 
         weather_code: int
 ):
-
+    # Create a WeatherReading ORM object.
+    #
+    # This object represents one weather observation
+    # in memory. It is not persisted to the database
+    # until it is added to the session and committed.
     reading = WeatherReading(
 
         city=city,
@@ -108,9 +158,13 @@ def create_reading(
 
         weather_code=weather_code
     )
-
+    # Add the ORM object to the current database session.
+    #
+    # The object is staged for insertion but has not yet
+    # been written to the database.
     db.add(reading)
-
+    # Commit the current transaction and persist
+    # the weather observation to SQLite.
     db.commit()
 
     return reading
@@ -136,7 +190,15 @@ def get_readings(
 
         limit: int = 50
 ):
-
+# Create a query object for the WeatherReading table.
+#
+# The ORM model (WeatherReading) represents the
+# weather_readings database table.
+#
+# SQL Equivalent:
+#
+# SELECT *
+# FROM weather_readings
     query = db.query(
 
         WeatherReading

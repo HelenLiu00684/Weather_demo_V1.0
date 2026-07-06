@@ -1,64 +1,57 @@
 # Weather Monitoring Platform
 
-## Overview
+A production-style weather monitoring platform built with Python.
 
-This project is a weather monitoring platform designed to continuously collect weather data, store historical records, detect meaningful events, expose APIs, and provide observability through telemetry and dashboards.
+The platform continuously collects weather observations, stores historical state, detects operational events, exposes REST APIs, exports telemetry, and provides dashboards for observability.
 
-Unlike a simple weather script, this platform focuses on:
-
-* Automated polling
-* Historical storage
-* Event detection
-* API exposure
-* Observability
-* Monitoring workflows
-* Automated testing and CI
-
-The system continuously polls multiple cities and transforms raw weather readings into higher-level weather events.
+Unlike a simple weather script, this project is designed using layered software architecture and modern backend engineering practices.
 
 ---
 
-# Architecture
+# Project Goal
+
+Build a monitoring platform capable of:
+
+- Continuously collecting weather observations
+- Persisting historical weather state
+- Detecting operational weather events
+- Providing REST APIs
+- Exporting telemetry for observability
+- Supporting automated testing and CI
+
+The project demonstrates software engineering practices commonly used in backend monitoring systems.
+
+---
+
+# System Architecture
 
 ```
-Open-Meteo API
-
-        ↓
-
-Poller Layer
-
-        ↓
-
-SQLite Database
-(authoritative state)
-
-        ↓
-
-Event Engine
-
-        ↓
-
-Weather Events DB
-
-        ↓
-
-Telemetry Layer
-
-        ↓
-
-InfluxDB
-
-        ↓
-
-Grafana Dashboard
-
-        ↓
-
-FastAPI
-
-        ↓
-
-Users / Dashboards / Queries
+                    Open-Meteo API
+                           │
+                           ▼
+                    Weather Service
+                           │
+                           ▼
+                      Poller Layer
+                           │
+                           ▼
+                SQLite (Authoritative State)
+                           │
+          ┌────────────────┴───────────────┐
+          ▼                                ▼
+     Event Engine                     FastAPI
+          │                                │
+          ▼                                ▼
+    Weather Events                  REST Clients
+          │
+          ▼
+    Telemetry Layer
+          │
+          ▼
+       InfluxDB
+          │
+          ▼
+       Grafana
 ```
 
 ---
@@ -68,189 +61,161 @@ Users / Dashboards / Queries
 ```
 app/
 
-├── api.py
-
-├── poller.py
-
-├── weather_service.py
-
-├── event_engine.py
-
-├── config.py
-
-├── config_influx.py
+├── api.py                 # REST API layer
+├── poller.py              # Weather collection pipeline
+├── weather_service.py     # Open-Meteo client
+├── event_engine.py        # Business event detection
+├── config.py              # Platform configuration
+├── config_influx.py       # Telemetry configuration
 
 ├── database/
-
 │   ├── database.py
-
 │   ├── reading.py
-
 │   └── event.py
 
 └── telemetry/
-
     └── metrics.py
 
 
 tests/
 
+├── conftest.py
 ├── test_api.py
-
 ├── test_cross_city.py
-
 ├── test_deduplication.py
-
 ├── test_duplicate.py
-
 ├── test_no_temperature_event.py
-
 ├── test_strong_wind.py
-
 └── test_weather_transition.py
 ```
 
 ---
 
-# Core Components
+# Software Architecture
+
+The platform follows a layered architecture.
+
+## Weather Service
+
+Responsible for:
+
+- Calling the Open-Meteo REST API
+- Retrieving current weather observations
+- Converting HTTP responses into Python dictionaries
+
+---
 
 ## Poller Layer
 
-Responsibilities:
+Responsible for:
 
-* Poll Open-Meteo API
-* Support multiple cities
-* Deduplicate repeated timestamps
-* Store readings into database
+- Periodic weather polling
+- Multi-city collection
+- Timestamp deduplication
+- Persisting weather observations
+- Invoking the Event Engine
+- Emitting telemetry
+
+The Poller acts as the orchestration layer of the platform.
 
 ---
 
 ## Storage Layer
 
-SQLite acts as the authoritative state.
+SQLite serves as the authoritative data source.
 
 Stores:
 
-* Weather readings
-* Weather events
+- Weather readings
+- Generated weather events
 
-SQLite was selected because:
+Responsibilities:
 
-* Lightweight
-* Easy deployment
-* Simple local development
-* Suitable for historical records
+- Historical persistence
+- Query support
+- State management
 
 ---
 
 ## Event Engine
 
-Transforms raw weather readings into higher-level events.
+The Event Engine converts raw weather observations into operational events.
 
-Current event types:
+Current event detectors include:
 
-### Temperature Change Detection
+### Rapid Temperature Change
 
-Detects significant temperature variations.
-
-Purpose:
-
-* Detect abnormal temperature shifts
-* Reduce noise from small fluctuations
-
----
+Detects abnormal temperature changes using historical baseline comparison.
 
 ### Strong Wind Detection
 
-Detects strong wind conditions.
-
-Purpose:
-
-* Identify severe weather conditions
-* Generate operational alerts
-
----
+Detects significant wind conditions and assigns event severity.
 
 ### Weather Transition Detection
 
-Detects weather code transitions.
+Detects changes between weather conditions.
 
 Example:
 
 ```
 Clear
-
-↓
-
+   ↓
 Rain
-
-↓
-
+   ↓
 Storm
 ```
 
-Purpose:
+### Cross-City Temperature Detection
 
-* Detect meaningful weather changes
+Compares temperatures across multiple monitored cities and identifies significant regional differences.
 
----
-
-### Cross City Temperature Detection
-
-Compares cities.
-
-Purpose:
-
-* Detect abnormal regional differences
-* Demonstrate multi-city analytics
+The Event Engine is intentionally separated from the Poller so business rules can evolve independently of data collection.
 
 ---
 
-# Telemetry Layer
+## Telemetry Layer
 
-Telemetry is intentionally separated from business logic.
+Telemetry is completely independent from business logic.
 
 Responsibilities:
 
-* Emit metrics
-* Export observability data
-* Feed dashboards
+- Export runtime metrics
+- Feed observability dashboards
+- Support operational monitoring
 
-Telemetry does NOT:
+Telemetry does **NOT**:
 
-* Own state
-* Modify state
-* Make decisions
+- Modify application state
+- Generate business events
+- Store weather data
 
-This separation prevents observability code from affecting platform behavior.
+This separation keeps observability independent from application behavior.
 
 ---
 
-# API Layer
+## API Layer
 
-FastAPI exposes monitoring data.
+FastAPI exposes persisted monitoring data through REST APIs.
 
-Endpoints:
+Available endpoints:
 
-## Health Check
+### Health Check
 
 ```
 GET /health
 ```
 
-Returns:
+Response:
 
-```
+```json
 {
-
-"status":"ok"
-
+    "status": "ok"
 }
 ```
 
 ---
 
-## Weather Readings
+### Weather Readings
 
 ```
 GET /readings
@@ -258,12 +223,12 @@ GET /readings
 
 Supports:
 
-* limit
-* city filtering
+- limit
+- city filtering
 
 ---
 
-## Weather Events
+### Weather Events
 
 ```
 GET /events
@@ -271,14 +236,69 @@ GET /events
 
 Supports:
 
-* limit
-* city filtering
+- limit
+- city filtering
+
+The API layer contains no business logic.
+It simply exposes persisted application data.
+
+---
+
+# Testing
+
+The project includes automated unit tests covering:
+
+- REST API validation
+- Temperature change detection
+- Strong wind detection
+- Weather transition detection
+- Cross-city temperature detection
+- Timestamp deduplication
+- Duplicate prevention
+
+Testing is implemented using:
+
+- PyTest
+- FastAPI TestClient
+- In-memory SQLite
+
+---
+
+# Continuous Integration
+
+GitHub Actions automatically performs:
+
+- Dependency installation
+- Test execution
+- Validation pipeline
+
+This ensures:
+
+- Clean repository builds
+- Repeatable execution
+- Continuous verification
+
+---
+
+# Technology Stack
+
+| Technology | Purpose |
+|------------|---------|
+| Python | Platform implementation |
+| SQLite | Persistent state storage |
+| SQLAlchemy | ORM |
+| FastAPI | REST API |
+| InfluxDB | Telemetry storage |
+| Grafana | Dashboard visualization |
+| Docker | Containerization |
+| PyTest | Automated testing |
+| GitHub Actions | Continuous Integration |
 
 ---
 
 # Installation
 
-Create environment:
+Create a virtual environment:
 
 ```bash
 python -m venv .venv
@@ -286,7 +306,7 @@ python -m venv .venv
 
 Activate:
 
-Linux:
+Linux
 
 ```bash
 source .venv/bin/activate
@@ -298,7 +318,7 @@ Install dependencies:
 pip install -r requirements.txt
 ```
 
-Create database:
+Initialize the database:
 
 ```bash
 python create_table.py
@@ -306,131 +326,80 @@ python create_table.py
 
 ---
 
-# Running Poller
+# Running the Platform
+
+Start the weather monitoring platform:
 
 ```bash
 python run.py
 ```
 
-Poller continuously collects weather data.
-
----
-
-# Running API
+Run the REST API independently:
 
 ```bash
 uvicorn app.api:app --reload
-```
-
-Open:
-
-```
-http://127.0.0.1:8000
 ```
 
 ---
 
 # Running Tests
 
-Execute:
-
 ```bash
 pytest tests -v
 ```
-
-Current test coverage includes:
-
-* API validation
-* Deduplication
-* Event detection
-* Cross city logic
-* Weather transitions
-* Wind detection
 
 ---
 
 # Docker
 
-Run:
+Start InfluxDB and Grafana:
 
 ```bash
 docker compose up
 ```
 
-This starts the platform stack.
-
----
-
-# CI Pipeline
-
-GitHub Actions automatically runs:
-
-* Dependency installation
-* Test execution
-* Validation pipeline
-
-CI ensures:
-
-* Clean clone works
-* Tests pass automatically
-* Submission reproducibility
-
----
-
-# Technology Choices
-
-| Technology     | Purpose                 |
-| -------------- | ----------------------- |
-| Python         | Platform implementation |
-| SQLite         | Authoritative storage   |
-| FastAPI        | API layer               |
-| SQLAlchemy     | ORM                     |
-| InfluxDB       | Telemetry storage       |
-| Grafana        | Visualization           |
-| Pytest         | Testing                 |
-| GitHub Actions | CI                      |
-
----
-
-# Cursor Setup
-
-The repository includes:
-
-```
-.cursor/
-```
-
-Contains:
-
-* Rules
-* Agent configuration
-* Project-specific workflow settings
-
-This folder is intentionally committed because it is part of the submission requirements.
-
 ---
 
 # Design Philosophy
 
-This project intentionally separates:
+The platform intentionally separates:
 
 ```
+Weather Collection
+
+        ↓
+
+State Persistence
+
+        ↓
+
 Business Logic
 
-↓
+        ↓
 
 Telemetry
 
-↓
+        ↓
 
-Observability
+Visualization
 ```
 
-Goals:
+This separation improves:
 
-* Reproducibility
-* Maintainability
-* Testability
-* Monitoring-first design
+- Maintainability
+- Testability
+- Scalability
+- Observability
 
-The platform is designed as a monitoring system rather than a simple weather script.
+---
+
+# Future Enhancements
+
+Possible future improvements include:
+
+- Alert notification pipeline
+- Machine learning based anomaly detection
+- Distributed weather collectors
+- Prometheus integration
+- Kubernetes deployment
+- Time-series analytics

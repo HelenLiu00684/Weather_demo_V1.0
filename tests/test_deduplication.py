@@ -1,3 +1,30 @@
+####################################################
+#
+# Duplicate Prevention Unit Test
+#
+# Responsibility
+#
+# Verify that duplicate weather readings
+# are not inserted into the database when
+# the timestamp already exists.
+#
+# Validation
+#
+# • Duplicate detection works correctly
+#
+# • Only one record exists
+#
+# Processing Pipeline
+#
+# Insert Weather Reading
+#          ↓
+# Check Latest Timestamp
+#          ↓
+# Detect Duplicate
+#          ↓
+# Verify Database Record Count
+#
+####################################################
 from app.database.reading import create_reading
 
 from app.database.reading import get_latest_timestamp
